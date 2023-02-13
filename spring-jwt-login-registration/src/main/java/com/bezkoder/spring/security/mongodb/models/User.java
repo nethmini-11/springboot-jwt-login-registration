@@ -29,16 +29,23 @@ public class User {
   @Size(max = 120)
   private String password;
 
+ @NotBlank
+ @Size(max=120)
+ private String orgname;
+
   @DBRef
   private Set<Role> roles = new HashSet<>();
 
-  public User() {
+  public User(String username, String email, String orgname,String password, String encode) {
   }
-
-  public User(String username, String email, String password) {
+    public User() {
+    }
+  public User(String username, String email,String orgname, String password ) {
     this.username = username;
     this.email = email;
+      this.orgname=orgname;
     this.password = password;
+
   }
 
   public String getId() {
@@ -65,6 +72,10 @@ public class User {
     this.email = email;
   }
 
+    public String getOrgname () {return orgname; }
+
+    public void setOrgname (String orgname) {this.orgname=orgname;}
+
   public String getPassword() {
     return password;
   }
@@ -73,6 +84,7 @@ public class User {
     this.password = password;
   }
 
+
   public Set<Role> getRoles() {
     return roles;
   }
@@ -80,4 +92,6 @@ public class User {
   public void setRoles(Set<Role> roles) {
     this.roles = roles;
   }
+
+
 }

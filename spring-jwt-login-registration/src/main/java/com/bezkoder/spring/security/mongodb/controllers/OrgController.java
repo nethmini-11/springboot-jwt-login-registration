@@ -3,6 +3,9 @@ package com.bezkoder.spring.security.mongodb.controllers;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import com.bezkoder.spring.security.mongodb.models.User;
+import com.bezkoder.spring.security.mongodb.payload.response.MessageResponse;
 import org.springframework.http.HttpStatus;
 
 import javax.validation.Valid;
@@ -28,7 +31,7 @@ import com.bezkoder.spring.security.mongodb.security.services.UserDetailsImpl;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/api/org/auth")
+@RequestMapping("/api/org")
 public class OrgController {
     @Autowired
     AuthenticationManager organizationAuthManager;
@@ -37,7 +40,13 @@ public class OrgController {
     OrganizationRepository organizationRepository;
 
     @PostMapping("/create")
-    public ResponseEntity<Organization> createResult(@RequestBody Organization organization) {
+    public ResponseEntity<?> createResult(@RequestBody Organization organization) {
+
+        if (organizationRepository.existsByOrgname(organization.getOrgname())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new MessageResponse("Error: Oranization Already Registered"));
+        }
         try {
             Organization _organization = organizationRepository.save(new Organization(organization.getOrgname()));
             return new ResponseEntity<>(_organization, HttpStatus.CREATED);
@@ -46,7 +55,8 @@ public class OrgController {
         }
     }
 
-    @PutMapping("/org/{id}")
+
+    @PutMapping("/update/{id}")
     public ResponseEntity<Organization> updateOrg(@PathVariable("id") String id, @RequestBody Organization organization) {
         Optional<Organization> orgData = organizationRepository.findById(id);
 
@@ -59,4 +69,33 @@ public class OrgController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
+
+    @GetMapping("/get/all/organizations")
+    public ResponseEntity<List<Organization>> getAllUsers() {
+        try {
+            List<Organization> all = organizationRepository.findAll();
+
+            if (all.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            }
+
+            return new ResponseEntity<>(all, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/get/organization")
+    public ResponseEntity<Organization> getUser(@RequestParam(required = false) String name) {
+        try {
+            Optional<Organization> byOrgname = organizationRepository.findByOrgname(name);
+
+            return byOrgname.map(user -> new ResponseEntity<>(user, HttpStatus.OK)).orElseGet(() ->
+                    new ResponseEntity<>(HttpStatus.NO_CONTENT));
+
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }

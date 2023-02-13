@@ -52,7 +52,8 @@ public class AuthController {
   public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
 
     Authentication authentication = authenticationManager.authenticate(
-        new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+
+            new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
     SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -68,7 +69,40 @@ public class AuthController {
         .body(new UserInfoResponse(userDetails.getId(),
                                    userDetails.getUsername(),
                                    userDetails.getEmail(),
+                                   userDetails.getOrgname(),
                                    roles));
+  }
+
+  //Singin with only Super Admin
+  @PostMapping("/superadmin/signin")
+  public ResponseEntity<?> authenticateUserRole(@Valid @RequestBody LoginRequest loginRequest) {
+
+    Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+    boolean isOrganization = userDetails.getAuthorities().stream()
+            .anyMatch(item -> item.getAuthority().equals("ROLE_SUPERADMIN"));
+
+    if (!isOrganization) {
+      return ResponseEntity.badRequest().body("Unauthorized. Only super admins are allowed to sign in.");
+    }
+
+    ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
+
+    List<String> roles = userDetails.getAuthorities().stream()
+            .map(item -> item.getAuthority())
+            .collect(Collectors.toList());
+
+    return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+            .body(new UserInfoResponse(userDetails.getId(),
+                    userDetails.getUsername(),
+                    userDetails.getEmail(),
+                    userDetails.getOrgname(),
+                    roles));
   }
 
   @PostMapping("/signup")
@@ -86,8 +120,9 @@ public class AuthController {
     }
 
     // Create new user's account
-    User user = new User(signUpRequest.getUsername(), 
+    User user = new User(signUpRequest.getUsername(),
                          signUpRequest.getEmail(),
+                         signUpRequest.getOrgname(),
                          encoder.encode(signUpRequest.getPassword()));
 
     Set<String> strRoles = signUpRequest.getRoles();
@@ -106,10 +141,10 @@ public class AuthController {
           roles.add(adminRole);
 
           break;
-        case "mod":
-          Role modRole = roleRepository.findByName(ERole.ROLE_ORGANIZATION)
+        case "superadmin":
+          Role supRole = roleRepository.findByName(ERole.ROLE_SUPERADMIN)
               .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-          roles.add(modRole);
+          roles.add(supRole);
 
           break;
         default:
@@ -119,6 +154,70 @@ public class AuthController {
         }
       });
     }
+
+    user.setRoles(roles);
+    userRepository.save(user);
+
+    return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+  }
+
+//  @PostMapping("/signup")
+//  public ResponseEntity<?> registerUser( @RequestBody SignupRequest signUpRequest) {
+//    if (userRepository.existsByUsername(signUpRequest.getUsername())) {
+//      return ResponseEntity
+//              .badRequest()
+//              .body(new MessageResponse("Error: Username is already taken!"));
+//    }
+//
+//    if (userRepository.existsByEmail(signUpRequest.getEmail())) {
+//      return ResponseEntity
+//              .badRequest()
+//              .body(new MessageResponse("Error: Email is already in use!"));
+//    }
+//
+//    // Create new user's account
+//    User user = new User(signUpRequest.getUsername(),
+//            signUpRequest.getEmail(),
+//            signUpRequest.getOrgname(),
+//            encoder.encode(signUpRequest.getPassword()));
+//
+//    Role modRole = roleRepository.findByName(ERole.ROLE_USER)
+//            .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+//
+//    Set<Role> roles = new HashSet<>();
+//    roles.add(modRole);
+//
+//    user.setRoles(roles);
+//    userRepository.save(user);
+//
+//    return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+//  }
+
+  @PostMapping("/superadmin/signup")
+  public ResponseEntity<?> registerUserRole(@RequestBody SignupRequest signUpRequest) {
+    if (userRepository.existsByUsername(signUpRequest.getUsername())) {
+      return ResponseEntity
+              .badRequest()
+              .body(new MessageResponse("Error: Username is already taken!"));
+    }
+
+    if (userRepository.existsByEmail(signUpRequest.getEmail())) {
+      return ResponseEntity
+              .badRequest()
+              .body(new MessageResponse("Error: Email is already in use!"));
+    }
+
+    // Create new user's account
+    User user = new User(signUpRequest.getUsername(),
+            signUpRequest.getEmail(),
+            signUpRequest.getOrgname(),
+            encoder.encode(signUpRequest.getPassword()));
+
+    Role modRole = roleRepository.findByName(ERole.ROLE_SUPERADMIN)
+            .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+
+    Set<Role> roles = new HashSet<>();
+    roles.add(modRole);
 
     user.setRoles(roles);
     userRepository.save(user);

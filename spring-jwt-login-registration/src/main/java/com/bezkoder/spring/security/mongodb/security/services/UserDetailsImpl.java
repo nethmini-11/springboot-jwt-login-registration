@@ -21,6 +21,7 @@ public class UserDetailsImpl implements UserDetails {
 
   private String email;
 
+  private String orgname;
   @JsonIgnore
   private String password;
 
@@ -44,7 +45,7 @@ public class UserDetailsImpl implements UserDetails {
         user.getId(), 
         user.getUsername(), 
         user.getEmail(),
-        user.getPassword(), 
+        user.getPassword(),
         authorities);
   }
 
@@ -60,6 +61,7 @@ public class UserDetailsImpl implements UserDetails {
   public String getEmail() {
     return email;
   }
+  public String getOrgname () {return  orgname;}
 
   @Override
   public String getPassword() {
@@ -70,6 +72,9 @@ public class UserDetailsImpl implements UserDetails {
   public String getUsername() {
     return username;
   }
+
+
+
 
   @Override
   public boolean isAccountNonExpired() {

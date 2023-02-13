@@ -14,6 +14,9 @@ public class SignupRequest {
   @Email
   private String email;
 
+  @NotBlank
+  @Size(min = 3, max = 20)
+  private String orgname;
   private Set<String> roles;
 
   @NotBlank
@@ -35,6 +38,16 @@ public class SignupRequest {
   public void setEmail(String email) {
     this.email = email;
   }
+
+
+  public String getOrgname() {
+    return orgname;
+  }
+
+  public void setOrgname(String orgname) {
+    this.orgname = orgname;
+  }
+
 
   public String getPassword() {
     return password;
